@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Extract WhatsApp group contacts and export them to Excel. Secure QR code authentication, real-time progress tracking.">
+    <title>WA Group Contact Scraper</title>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS v3 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
+                    },
+                    colors: {
+                        wa: {
+                            green:  '#25D366',
+                            teal:   '#128C7E',
+                            dark:   '#075E54',
+                            light:  '#DCF8C6',
+                            bg:     '#0B141A',
+                            panel:  '#111B21',
+                            card:   '#1F2C33',
+                            border: '#2A3942',
+                            text:   '#E9EDEF',
+                            muted:  '#8696A0'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="min-h-screen font-sans text-wa-text overflow-x-hidden">
+
+    <!-- ═══ Animated Background ═══ -->
+    <div class="animated-bg"></div>
+
+    <!-- ═══ Main Container ═══ -->
+    <div class="relative z-10 min-h-screen flex flex-col">
+
+        <!-- ═══ Header ═══ -->
+        <header class="py-5 px-6">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-wa-green to-wa-teal flex items-center justify-center shadow-lg shadow-wa-green/20">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight">WA Contact Scraper</h1>
+                        <p class="text-xs text-wa-muted">Extract group contacts to Excel</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Status Badge -->
+                    <div id="status-badge" class="status-badge">
+                        <span id="status-dot" class="status-dot"></span>
+                        <span id="status-text" class="text-xs font-medium">Initializing</span>
+                    </div>
+                    <!-- Logout Button (hidden by default) -->
+                    <button id="btn-logout" class="hidden px-3 py-1.5 text-xs font-medium text-red-400 border border-red-400/30 rounded-lg hover:bg-red-400/10 transition-all duration-300" onclick="handleLogout()">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ═══ Main Content ═══ -->
+        <main class="flex-1 flex items-center justify-center px-6 pb-10">
+            <div class="w-full max-w-2xl">
+
+                <!-- ═══ Panel 1: Authentication (QR Code) ═══ -->
+                <section id="panel-auth" class="panel glass-card p-8 text-center">
+                    <div class="mb-6">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-wa-green/10 border border-wa-green/20 text-wa-green text-sm font-medium mb-4">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Step 1 — Authentication
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2">Connect WhatsApp</h2>
+                        <p class="text-wa-muted text-sm max-w-md mx-auto">
+                            Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan the QR code below
+                        </p>
+                    </div>
+
+                    <!-- QR Code Container -->
+                    <div id="qr-container" class="qr-wrapper mx-auto mb-6">
+                        <div id="qr-loading" class="qr-placeholder">
+                            <div class="spinner mb-3"></div>
+                            <p class="text-sm text-wa-muted">Generating QR code...</p>
+                        </div>
+                        <img id="qr-image" class="hidden rounded-xl" alt="WhatsApp QR Code" width="280" height="280">
+                    </div>
+
+                    <p id="auth-status-text" class="text-sm text-wa-muted animate-pulse">
+                        Initializing WhatsApp client...
+                    </p>
+                </section>
+
+                <!-- ═══ Panel 2: Group Selection ═══ -->
+                <section id="panel-groups" class="panel glass-card p-8 hidden">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-wa-green/10 border border-wa-green/20 text-wa-green text-sm font-medium mb-4">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                            </svg>
+                            Step 2 — Select Group
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2">Your Groups</h2>
+                        <p class="text-wa-muted text-sm">Select a group to extract contacts from</p>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="relative mb-4">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-wa-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input
+                            id="group-search"
+                            type="text"
+                            placeholder="Search groups..."
+                            class="w-full pl-10 pr-4 py-3 bg-wa-bg/60 border border-wa-border rounded-xl text-wa-text placeholder-wa-muted focus:outline-none focus:border-wa-green/50 focus:ring-1 focus:ring-wa-green/30 transition-all duration-300"
+                            oninput="filterGroups(this.value)"
+                        >
+                    </div>
+
+                    <!-- Group List -->
+                    <div id="group-list" class="max-h-80 overflow-y-auto custom-scrollbar space-y-2 mb-6">
+                        <!-- Groups will be rendered here by JS -->
+                    </div>
+
+                    <!-- Group count + Extract button -->
+                    <div class="flex items-center justify-between">
+                        <p id="group-count" class="text-sm text-wa-muted"></p>
+                        <button
+                            id="btn-extract"
+                            disabled
+                            class="px-6 py-3 bg-gradient-to-r from-wa-green to-wa-teal text-white font-semibold rounded-xl shadow-lg shadow-wa-green/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none hover:shadow-wa-green/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center gap-2"
+                            onclick="handleExtract()"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Extract Contacts
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ═══ Panel 3: Extraction Progress ═══ -->
+                <section id="panel-progress" class="panel glass-card p-8 text-center hidden">
+                    <div class="mb-6">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium mb-4">
+                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            Step 3 — Extracting
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2" id="progress-title">Extracting Contacts</h2>
+                        <p class="text-wa-muted text-sm" id="progress-subtitle">Please wait while we gather contact information...</p>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-wa-bg/60 rounded-full h-4 mb-4 overflow-hidden border border-wa-border">
+                        <div id="progress-bar" class="progress-bar-fill h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+
+                    <!-- Progress Stats -->
+                    <div class="flex justify-between items-center mb-6">
+                        <span id="progress-count" class="text-sm font-medium text-wa-green">0 / 0 contacts</span>
+                        <span id="progress-percent" class="text-sm font-bold text-wa-green">0%</span>
+                    </div>
+
+                    <!-- Latest extracted contact -->
+                    <div id="progress-latest" class="px-4 py-2 bg-wa-bg/40 rounded-lg border border-wa-border text-sm text-wa-muted">
+                        Waiting for first contact...
+                    </div>
+                </section>
+
+                <!-- ═══ Panel 4: Download Complete ═══ -->
+                <section id="panel-download" class="panel glass-card p-8 text-center hidden">
+                    <div class="mb-6">
+                        <div class="success-icon mx-auto mb-4">
+                            <svg class="w-16 h-16 text-wa-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2 text-wa-green">Extraction Complete!</h2>
+                        <p id="download-summary" class="text-wa-muted text-sm">
+                            Successfully extracted contacts
+                        </p>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-wa-bg/40 rounded-xl p-4 border border-wa-border">
+                            <p class="text-2xl font-bold text-wa-green" id="stat-contacts">0</p>
+                            <p class="text-xs text-wa-muted mt-1">Contacts Extracted</p>
+                        </div>
+                        <div class="bg-wa-bg/40 rounded-xl p-4 border border-wa-border">
+                            <p class="text-2xl font-bold text-wa-text" id="stat-total">0</p>
+                            <p class="text-xs text-wa-muted mt-1">Total Participants</p>
+                        </div>
+                    </div>
+
+                    <!-- Download Button -->
+                    <a
+                        id="btn-download"
+                        href="#"
+                        class="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-wa-green to-wa-teal text-white font-bold text-lg rounded-xl shadow-lg shadow-wa-green/30 hover:shadow-wa-green/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mb-4"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Download Excel (.xlsx)
+                    </a>
+
+                    <br>
+
+                    <!-- Extract Another -->
+                    <button
+                        class="mt-2 px-6 py-2.5 text-sm font-medium text-wa-muted border border-wa-border rounded-xl hover:border-wa-green/40 hover:text-wa-green transition-all duration-300"
+                        onclick="goToGroups()"
+                    >
+                        ← Extract from another group
+                    </button>
+                </section>
+
+                <!-- ═══ Error Panel ═══ -->
+                <section id="panel-error" class="panel glass-card p-8 text-center hidden">
+                    <div class="mb-6">
+                        <div class="mx-auto mb-4 w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-bold mb-2 text-red-400">Something Went Wrong</h2>
+                        <p id="error-message" class="text-wa-muted text-sm">An unexpected error occurred</p>
+                    </div>
+                    <button
+                        class="px-6 py-3 bg-wa-card border border-wa-border text-wa-text font-medium rounded-xl hover:border-wa-green/40 transition-all duration-300"
+                        onclick="goToGroups()"
+                    >
+                        Try Again
+                    </button>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- ═══ Footer ═══ -->
+        <footer class="py-4 text-center">
+            <p class="text-xs text-wa-muted/50">
+                WA Group Contact Scraper • For educational use only • Not affiliated with WhatsApp/Meta
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- ═══ Scripts ═══ -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

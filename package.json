@@ -1,0 +1,31 @@
+{
+  "name": "wa-group-contact-scraper",
+  "version": "1.0.0",
+  "description": "WhatsApp Group Contact Scraper — Extract group contacts and export to Excel",
+  "main": "app_server.js",
+  "scripts": {
+    "start": "node app_server.js",
+    "dev": "nodemon app_server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "scraper",
+    "contacts",
+    "excel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "whatsapp-web.js": "^1.26.0",
+    "socket.io": "^4.7.5",
+    "qrcode": "^1.5.4",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "allowScripts": {
+    "puppeteer@24.38.0": true
+  }
+}
